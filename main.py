@@ -1,7 +1,7 @@
 from flask import Flask, render_template, send_from_directory
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='docs')
 
 @app.route('/')
 def home():
