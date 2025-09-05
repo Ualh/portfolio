@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/expanded-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ChevronDown, ChevronUp, Github, Linkedin, Mail, ExternalLink, FileText } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 export const Portfolio = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
 
   const toggleProject = (projectId: string) => {
@@ -16,34 +17,78 @@ export const Portfolio = () => {
     }));
   };
 
+  const cvLinks: Record<string, string> = {
+  en: '/portfolio/CV-en.pdf',
+  fr: '/portfolio/CV-fr.pdf',
+  de: '/portfolio/CV-de.pdf',
+  es: '/portfolio/CV-es.pdf',
+};
+
   const projects = [
     {
-      id: 'delirium',
-      title: t('deliriumTitle'),
-      tech: t('deliriumTech'),
-      shortDescription: t('deliriumShort'),
-      longDescription: `This project was part of my internship at the HUG and it is one of the project I am currently working on. The problem is that delirium is often not coded and thus induce a miss gained for the hospital. Having a tools that could predict delirium at the entry of a patient could thus be useful. I started by reading the current literature on what was already made. Lots of papers tackled this issues so we decided to pursue to find a similar approach. One interesting paper: 'An interpretable deep learning model for time-series electronic health records: Case study of delirium prediction in critical care (by Seyedmostafa Sheikhalishahi a,b, Anirban Bhattacharyya c, Leo Anthony Celi d,e,f, Venet Osmani a,g,∗), used deep learning approach with adequate results on publicly available data (MIMIC and eICU) in intensive care.
+        id: 'delirium',
+        title: t('deliriumTitle'),
+        tech: t('deliriumTech'),
+        shortDescription: t('deliriumShort'),
+        longDescription: `This project was part of my internship at HUG and is ongoing. The main challenge: delirium is often not coded, leading to missed revenue for the hospital. A tool that predicts delirium at patient entry could enable earlier intervention and better planning.
+        
+        
+I began by reviewing existing research. Many papers address this issue; one notable example is  
+*"An interpretable deep learning model for time-series electronic health records: Case study of delirium prediction in critical care"* (Sheikhalishahi et al.), which uses deep learning on public ICU datasets (MIMIC, eICU).
 
-Based on those informations I thus started to analyse what data is available via SQL queries and preprocess it (filter delirium patients, missing data, filling, outliers, ..). Notably, what is important is based on the number of our 'before' delirium we want to predict we need to ignore those last hours before the event, otherwise the model might pick up on signals that are only present right before delirium occurs. This makes the prediction more challenging, but also more useful for planning ahead!
+Data Analysis & Preprocessing  
+- Queried and filtered data for delirium patients using SQL  
+- Handled missing data, outliers, and filled gaps  
+- Excluded the last hours before delirium onset to avoid biasing the model with signals that only appear right before the event
 
-Delirium prediction is a time-series problem. We need to organize the data chronologically and create appropriate features that capture changes over time. Time series processing involves:
-1. **Binning**: Aggregating measurements into hourly bins
-2. **Sequencing**: Organizing data into time sequences for each patient
-3. **Window selection**: Creating prediction windows
+Time Series Processing* 
+- Binning: Aggregate measurements into hourly bins  
+- Sequencing: Organize data into time sequences per patient  
+- Window Selection: Create prediction windows for forecasting
 
-Then we move on into the mode selection. We test Logistic Regression, XGBoost, BiRNN and DSA (Dual Self-Attention, which is the paper's model) to compare. Each model has unique characteristics that make it suitable for different aspects of delirium prediction.
+Model Selection
+Tested several models, each with unique strengths:
+- Logistic Regression: Interpretable, fast, but limited for complex patterns
+- XGBoost: Handles non-linearities, robust to missing data, but less effective for sequences
+- BiRNN (LSTM): Captures long-term dependencies, but needs more data and is less interpretable
+- DSA (Dual Self-Attention): Focuses on both time and features, powerful but complex
 
-The training process involves showing the model examples, computing prediction errors, and updating the model to reduce these errors iteratively. Cross-validation helps assess how well a model will perform on unseen data by partitioning the data into multiple train-test splits.
+Model Training 
+- Padding: Ensure all sequences are the same length  
+- Tensor Conversion: Transform data for PyTorch  
+- DataLoaders: Efficient batching for training
 
-For binary classification tasks like delirium prediction, multiple metrics are needed to fully understand model performance, especially with imbalanced classes. Key metrics include AUC, Specificity at 90% Sensitivity, PPV, and MCC.
+Handling Class Imbalance  
+Delirium is rare, so we used:
+- Class weights in the loss function  
+- Weighted sampling  
+- Specialized loss functions
 
-Hyperparameters are model configuration settings that aren't learned during training but significantly impact performance. Effective tuning strategies include Grid search, Random search, and Bayesian optimization.
+Training Process  
+- Forward pass → Loss calculation → Backpropagation → Parameter update
 
-In clinical settings, understanding why a model made a prediction is often as important as the prediction itself. Key interpretation methods include Guided Backpropagation (GB), Integrated Gradients (IG), and Shapley Value Sampling (SVS).`,
-      links: [
-        { text: t('confidentialNote'), url: '#', type: 'confidential' }
-      ]
-    },
+Model Evaluation  
+Used cross-validation with stratified K-folds to ensure balanced splits. Key metrics:
+- AUC (Area Under ROC Curve)
+- Specificity at 90% Sensitivity
+- PPV (Positive Predictive Value)
+- MCC (Matthews Correlation Coefficient)
+
+Visualization  
+- ROC curves, learning curves, feature importance plots, confusion matrices
+
+Hyperparameter Tuning  
+- Grid search, random search, and Bayesian optimization (Optuna)
+
+Interpretability  
+Crucial for clinical trust:
+- Guided Backpropagation, Integrated Gradients, Shapley Value Sampling
+- SHAP summary plots and sorted feature importance help clinicians understand predictions
+        `,
+        links: [
+          { text: t('confidentialNote'), url: '#', type: 'confidential' }
+        ]
+      },
     {
       id: 'costweight',
       title: t('costWeightTitle'),
@@ -61,14 +106,7 @@ Then metrics like MAE and RMSE where outputed and visualize into an efficient lo
 
 To put that into production, i build a short pipeline that used only the selected model and outputed a dataset of the value into the company's server. Docker was used for the production from image building to containerization and CRON automation was used so that the it automatically fetched the new data that was coming in each day to predict the CW if missing.
 
-Finally, I updated the working powerbi dashboard so that those predicted value were loaded and blended seamlessly into the actual table and views via a simple 'on/off' toggle. Now the company was able to have a actual up-to-date view of the state of the CW if wanted or come back to the previous state were some CW were missing.
-
-**Achievements:**
-- Gathered, cleaned and formatted big data via SQL queries and .py scripts (pandas)
-- Applied diverse ML techniques to predict cost related variables (scikit-learn)
-- Updated and developed Power BI dashboards (DAX)
-- Build detailed consulting reports for clinics and hospitals
-- Effectively translated business needs into technical solutions`,
+Finally, I updated the working powerbi dashboard so that those predicted value were loaded and blended seamlessly into the actual table and views via a simple 'on/off' toggle. Now the company was able to have a actual up-to-date view of the state of the CW if wanted or come back to the previous state were some CW were missing.`,
       links: [
         { text: t('confidentialNote'), url: '#', type: 'confidential' }
       ]
@@ -85,8 +123,8 @@ It uses machine learning techniques such as Linear Regression, Random Forest, Gr
 The application provides insights into how market sentiment influences cryptocurrency prices, helping users make informed decisions about their investments.`,
       links: [
         { text: t('viewProject'), url: 'https://github.com/Ualh/crypto-sentiment-tracker', type: 'project' },
-        { text: 'Programming Report', url: '#', type: 'report' },
-        { text: 'Data Analysis Report', url: '#', type: 'report' }
+        { text: 'Programming Report', url: '/portfolio/AP_Hurni.pdf', type: 'report' },
+        { text: 'Data Analysis Report', url: '/portfolio/ADA_Hurni.pdf', type: 'report' }
       ]
     },
     {
@@ -100,7 +138,7 @@ The paper delves into various aspects of Binance's operations. It examines strat
 
 The paper also discusses the broader implications of these regulations on Binance's future in China and globally, highlighting the company's strategic adaptability in the face of evolving international regulations.`,
       links: [
-        { text: 'View Paper', url: '#', type: 'report' }
+        { text: 'View Paper', url: '/portfolio/DBC_UrsAHurni.pdf', type: 'report' }
       ]
     },
     {
@@ -194,7 +232,14 @@ The analysis provides valuable insights for the association to optimize their op
               <a href="#projects" className="text-rust-600 hover:text-rust-700 transition-colors">{t('projects')}</a>
               <a href="#skills" className="text-rust-600 hover:text-rust-700 transition-colors">{t('skills')}</a>
               <a href="#interests" className="text-rust-600 hover:text-rust-700 transition-colors">{t('interests')}</a>
-              <a href="#" className="text-rust-600 hover:text-rust-700 transition-colors">{t('cv')}</a>
+              <a
+                href={cvLinks[language]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-rust-600 hover:text-rust-700 transition-colors"
+              >
+                {t('cv')}
+              </a>
             </div>
             <LanguageToggle />
           </div>
@@ -205,7 +250,11 @@ The analysis provides valuable insights for the association to optimize their op
       <section id="about" className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <div className="mb-8">
-            <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-rust shadow-rust"></div>
+            <img 
+              src="/portfolio/profile.jpg" 
+              alt="Urs A. Hurni"
+              className="w-32 h-32 mx-auto rounded-lg mb-2 bg-gradient-rust shadow-rust object-cover"
+            />
             <h1 className="text-5xl md:text-6xl font-bold mb-4">
               Urs A. <span className="text-rust-600">Hurni</span>
             </h1>
@@ -283,13 +332,11 @@ The analysis provides valuable insights for the association to optimize their op
                 
                 {expandedProjects[project.id] && (
                   <CardContent className="pt-0 animate-fade-in">
-                    <div className="prose prose-sm max-w-none mb-6">
-                      {project.longDescription.split('\n\n').map((paragraph, index) => (
-                        <p key={index} className="mb-4 text-foreground">
-                          {paragraph}
-                        </p>
-                      ))}
-                    </div>
+                    <div className="prose prose-sm max-w-none mb-6 text-foreground">
+                  <ReactMarkdown>
+                    {project.longDescription}
+                  </ReactMarkdown>
+                </div>
                     <div className="flex flex-wrap gap-3">
                       {project.links.map((link, index) => (
                         link.type === 'confidential' ? (

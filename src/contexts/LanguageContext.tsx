@@ -29,7 +29,7 @@ const translations = {
     hideDetails: "Hide Details",
     viewProject: "View Project",
     viewReport: "View Report",
-    confidentialNote: "Sadly confidential, but at least you see that I respect confidentiality :)",
+    confidentialNote: "No Github or Links - Confidential :)",
     
     // Project Titles and Descriptions
     deliriumTitle: "Delirium Prediction in Hospitalized Patients",
